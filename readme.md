@@ -4,21 +4,17 @@
 #Mục lục
 - [1. Cluster là gì](#Clusterlagi)
 - [2. Mô hình triển khai](#Mohinhtrienkhai)
-	<ul>
-	<li>[2.1. High Performance Cluster](#HPC)</li>
-	<li>[2.2. Load Balancing Cluster](#LBC)</li>
-	<li>[2.3. High Availabality Cluster](#HAC)</li>
-	</ul>
+- [2.1. High Performance Cluster](#HPC)
+- [2.2. Load Balancing Cluster](#LBC)
+- [2.3. High Availabality Cluster](#HAC)
 - [3. Lịch sử HAC trong linux](#LSHAC)
 - [4. Các thành phần trong HAC](#CTPHAC)
 - [5. Kiến trúc Pacemaker](#KTP)
-	<ul>
-	<li>[5.1. Cluster Infomation Base](#CIB)</li>
-	<li>[5.2. CRMD](#CRMD)</li>
-	<li>[5.3. PEngine](#PEngine)</li>
-	<li>[5.4. LRMD](#LRMD)</li>
-	<li>[5.5. Stonith/fenced](#Stonith)</li>
-	</ul>
+- [5.1. Cluster Infomation Base](#CIB)
+- [5.2. CRMD](#CRMD)
+- [5.3. PEngine](#PEngine)
+- [5.4. LRMD](#LRMD)
+- [5.5. Stonith/fenced](#Stonith)
 - [6. Vấn dề xảy ra trong Cluster](#VDC)
 - [7. Cài đặt](#Caidat)
 - [8. Cấu hình](#Cauhinh)
