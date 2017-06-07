@@ -60,16 +60,16 @@
 <li>Nó đặc biệt quan tronjng nếu là share storage như là cLVM2 cluster logical volumn hoặc GFS2 và OCFS2 cluster file system.</li></ul>
 
 ##5. Kiến trúc Pacemaker
-
 <img src="http://i.imgur.com/GTTGMpk.png">
 
 ###5.1 Cluster Infomation Base (CIB)
+
 - Trái tim của cluster là Cluster Infomation Base (CIB). Đây là trạng thái thực tế trong bộ nhớ của cluster đó là liên tục đồng bộ giữa các node trong cluster. Bạn sẽ không bao giờ chỉnh sửa trực tiếp được CIB.
 - Các CIB sử dụng XML để đại diện cho cả hai cấu hình của cluster và trạng thái hiện tại của tất cả các resource trong cluster. Nội dung của CIB được đồng bộ trên toàn bộ cụm.
 - Để hiểu làm thế nào cluster management tool làm việc, hiểu biết CIB tổ chức như nào. Sử dụng lệnh cibadmin -Q
 - Ví dụ về một CIB
 
-`
+``
 root@ctl1# cibadmin -Q
 <cib epoch="500" num_updates="8" admin_epoch="0" validate-with="pacemaker-1.2" crm_feature_set="3.0.7" cib-last-written="Thu Oct 22 16:03:02 2015" update-origin="ctl2" update-client="cibadmin" have-quorum="0" dc-uuid="1">
   <configuration>
@@ -228,6 +228,6 @@ root@ctl1# cibadmin -Q
   </status>
 </cib>
 
-`
+``
  
 
