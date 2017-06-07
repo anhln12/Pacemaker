@@ -2,9 +2,7 @@
 =========
 
 # Table of Contents
-[1. Linux](#1Cluster là gì)
-2. [Example2](#example2)
-3. [Third Example](#third-example)
+[1. Cluster là gì](#1Cluster là gì)
 
 
 ##1. Cluster là gì
