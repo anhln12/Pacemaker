@@ -50,6 +50,7 @@
 <ul><li>Pacemaker là một phần của cluster, có trách nhiệm quản lý các tài nguyên.</li>
 <li>Để quản lý tài nguyên, Resource agent được sử dụng.</li>
 <li>Một resource agent là một script mà cluster sử dụng để start, stop và monitor resource. Nó có thể so sách systemctl hoặc 1 script chạy có mức độ. Nhưng nó được điều chỉnh để sử dụng trong cluster. Nó cũng có thể định nghĩa các thuộc tính có thể quản lý bởi cluster. Đối với 1 admin, nó rất quan trọng để biết được thuộc tính nào có thể sử dụng trước khi bắt đầu cấu hình resource.</li></ul> 
+
 - Corosync
 <ul><li>Corosync là một layer có nhiệm vụ quản lý các node thành viên.</li>
 <li>Nó cũng được cấu hình để giao tiếp với pacemaker.</li>
