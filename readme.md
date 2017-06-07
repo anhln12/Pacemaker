@@ -54,12 +54,14 @@
 - Corosync:
 <ul><li>Corosync là một layer có nhiệm vụ quản lý các node thành viên.</li>
 <li>Nó cũng được cấu hình để giao tiếp với pacemaker.</li>
-<li>Pacemaker nhận update về những sự thay đổi trạng thái của các node trong cluster. Dựa vào đó nó có thể bắt đầu một sự kiện nào đó ví dụ như migrate resource.</li></ul>
+<li>Pacemaker nhận update về những sự thay đổi trạng thái của các node trong cluster. Dựa vào đó nó có thể bắt đầu một sự kiện nào đó ví dụ như migrate resource.</li>
+</ul>
 
 - Storage layer:
-<ul><li> Pacemaker cũng được sử dụng để quản lý các thiết bị lưu trữ.</li>
-<li>Một quản lý khóa phân phối (Distribute Lock Manage DLM) cần phải có. DLM quản lý việc đồng bộ hóa các khóa giữa các nodes.</li>
-<li>Nó đặc biệt quan tronjng nếu là share storage như là cLVM2 cluster logical volumn hoặc GFS2 và OCFS2 cluster file system.</li></ul>
+	<ul><li>Pacemaker cũng được sử dụng để quản lý các thiết bị lưu trữ.</li>
+	<li>Một quản lý khóa phân phối (Distribute Lock Manage DLM) cần phải có. DLM quản lý việc đồng bộ hóa các khóa giữa các nodes.</li>
+	<li>Nó đặc biệt quan tronjng nếu là share storage như là cLVM2 cluster logical volumn hoặc GFS2 và OCFS2 cluster file system.</li>
+	</ul>
 
 ##5. Kiến trúc Pacemaker
 
@@ -233,4 +235,258 @@ root@ctl1# cibadmin -Q
 
 ```
  
+- Thông tin được chia làm 2 phần là configuration và status.
+	- Trong mục configuration sẽ có 3 phần chính khác:
+		- crm_config
+		- node: Hiển thị cac node
+		- resource: Các resource được định nghĩa để cluster quản lý
+ 
+- Có các kiểu của resources sau
+	- Primitives: Một primitive là dịch vụ được quản lý bởi cluster. Nó là một instance đơn của service.
+	- Groups: Một group là một tập hợp các primitives. Sự tiện lợi của group là cluster sẽ bắt đầu primitives như là một phần của groups. Nếu 1 primitive trong group bị fail, không có primitive trong group có thể start.
+	- Clones: Một clone là một primitive mà cần thiết để bắt đầu cluster hơn 1 lần. Clones hữu dụng cho các services mà phải ở chế độ active/active như file system cluster.
+	- Master slaves: Một master slave là một kiểu đặc biệt của clone. Trong đó 1 vài thể hiện (ít nhất là 1) active và những thể hiện khác slave.
+
+###5.2 CRMD
+- Cluster resource management daemon là một tiến trình quản lý trạng thái hoạt động của cluster.
+- Nhiệm vụ chính của của crmd là chuyển tiếp trực tiếp các thông tin giữa nhiều components của cluster. Như việc đặt resource trên các node đặc biệt. Nó cũng có trách nhiệm quản lý các node transition. Node mà master crmd thực sự action được công nhận là desginated coordinator (DC). Nếu DC fail, cluster sẽ tự động chọn một DC mới nhất nhanh chóng.
+
+###5.3 PEngine
+- Là một phần của cluster nó tính toán để đạt được.
+- Nó tạo ra một danh sách các hướng dẫn được gửi tới crmd. Cách tốt nhất để 1 admin tác động tới hành vi của pengine là định nghĩa những hạn chế trong cluster.
+
+###5.4 LRMD
+- Local resource management daemon là một phần của cluster được chạy trên mỗi node của cluster.
+- Nếu crmd quyết định chạy resource trên node đặc biệt nào, nó sẽ hướng lrmd vào node đó để bắt đầu resource.
+- Trong trường hợp nó không hoạt động, lrmd sẽ thông báo về crmd rằng start resource fail. Sau đó Cluster có thể cố gắng thử lại resource trên nút khác trong cluster.
+- LRM cũng có trách nhiệm monitor operation và stop operation mà đang chạy trên node.
+
+###5.5 Stonith/fenced
+- Viết tắt của Shoot the other node in the head
+- Tiến trình stonith nhận hướng dẫn từ crmd về các thay đổi trạng thái của các node.
+- Nếu 1 node không trả lời, membership layer (corosync) sẽ nói cho crmd biết và crmd hướng dẫn stonith chấm dứt node đó.
+
+##6. Vấn dề xảy ra trong Cluster
+###Split Brain
+
+- Split brain có nghĩa là cluster bị chia ra làm 2 hoặc nhiều phần nhưng tất cả các phần nghĩ rằng chúng là những phần còn lại của cluster.
+
+- Điều này có thể dẫn tới 1 vấn đề xấu khi mà tất cả các phần của cluster cố gắng host các tài nguyên được đề nghị bởi cluster.
+
+- Nếu tài nguyên là file system và multi nodes cố gắng ghi file system đồng thời và không có sự phối hợp. Nó có thể dẫn tới corruption của file system và mất dữ liệu.    
+
+Để giải quyết split brain người ta sử dụng quorum hoặc fencing/stonith
+
+- Quá trình đàm phán Quorum Quá trình đàm phán quorum xảy ra khi một node đang sở hữu một quorum resource bị lỗi hay không hoạt động, và các node còn lại sẽ xác định node nào sẽ giữ quyền sở hữu quorum resource. Mục đích của quá trình đàm phán quorum là tại một thời điểm đảm bảo rằng chỉ một node duy nhất được sở hữu quorum resource. Việc chỉ cho một node sở hữu quorum resource là rất quan trọng bởi vì nếu tất cả các giao tiếp giữa 2 hay nhiều node bị lỗi, nó có khả năng chia Cluster thành 2 hay nhiều phần riêng biệt để giữ cho nó vần tiếp tục hoạt động (split brain). Server Cluster ngăn ngừa nó bằng cách chỉ cho phép duy nhất một Cluster tách ra này có chứa node đang sở hữu quorum resource tiếp tục hoạt động như một Cluster. Bất kỳ node nào không thể giao tiếp với node đang sở hữu quorum resource, thì node đó sẽ không còn là node thành viên trong Cluster.
+- Stonith Đã nói bên trên
+
+##7.Cài đặt
+
+- Có thể thấy pacemaker chỉ là 1 thành phần để quản lý các resource nên khi cài đặt chúng ta phải cài đặt cùng với các thành phần khác để nó có thể hoạt động được
+
+- Trên ubuntu chạy lệnh sau, sau khi update
+
+`sudo apt-get install pacemaker corosync crmsh cluster-glue resource-agents - y`
+
+Trên centos chạy lệnh sau
+`sudo yum install pacemaker cman pcs ccs resource-agents -y`
+
+##8. Cấu hình
+
+Chuẩn bị 2 Server có cấu hình tương đương:
+
+OS: Ubuntu Server 14.04
+
+CPU 1 core
+
+RAM: 1GB
+
+HDD 1: 20GB
+
+HDD 2: 5GB
+
+Mục này mình sẽ hướng dẫn xây dựng 1 cluster chạy web apache có thư mục source code và Database được đồng bộ giữa 2 node với nhau sử dụng DRBD
+
+Trên 2 node sẽ cắm thêm 1 ổ cứng để thực hiện đồng bộ các file
+
+Mô hình
+<img src="http://i.imgur.com/o8tk6Jj.png">
+
+- Mình thực hiện trên Ubuntu Server 14.04 khi chạy centos các lệnh có thể sẽ khác các bạn tìm hiểu thêm
+
+- Sửa file hosts của cả 2 node
+`cat << EOF > /etc/hosts 
+127.0.0.1       localhost
+10.10.10.11     ctl1
+10.10.10.12     ctl2
+EOF`
+
+###Cài đặt các package cần thiết , chạy lần lượt các lệnh sau trên cả 2 node
+
+`apt-get update
+apt-get install drbd8-utils -y
+apt-get install pacemaker crmsh corosync cluster-glue resource-agents apache2 mariadb -y`
+
+- Để khởi động corosync và pacemaker cùng hệ thống chạy 2 lệnh sau trên cả 2 node
+
+`update-rc.d pacemaker defaults
+update-rc.d corosync defaults`
+
+- Mặc định corosync không được chạy do vậy ta cần chỉnh sửa file defaults của nó trên cả 2 node
+`sed -i "s/START=no/START=yes/g" /etc/default/corosync`
+
+- Cấu hình corosync trên cả 2 node
+Sửa file /etc/corosync/corosync.conf
+
+Dòng 42: bindnetaddr: điền dải mạng của 2 node sử dụng ví dụ của mình là 10.10.10.0
+
+Khởi động corosync và pacemaker trên cả 2 node
+`service corosync start
+service pacemaker start`
+
+- Kiểm tra trạng thái Chạy lệnh crm status hoặc crm_mon trên 1 node
+- Lệnh `crm_mon` khác với lệnh `crm status` ở chỗ nó có thể cập nhật trạng thái liên tục nếu có sự thay đổi
+
+Khi cấu hình thành công sẽ như sau
+<img src="http://i.imgur.com/OYQTDRZ.png">
+
+###Cấu hình DRBD ( Distributed Replicated Block Device) trên cả 2 node Enable module DRBD trên cả 2 node
+`modprobe drbd`
+
+Kiểm tra module đã được bật chưa
+
+`lsmod | grep drbd`
+
+Trước hết bạn cần phải có thêm 1 ổ cứng hoặc 2 phân vùng trống
+
+Mình sẽ tạo 2 phân vùng mới trên 1 ổ cứng mình lắp thêm thực hiện trên cả 2 node
+
+Chạy lệnh sau
+`echo -e "o\nn\np\n\n\n+2000MB\nn\np\n2\n\n\n\nw" | fdisk /dev/sdb`
+
+Tạo resource cho DRBD ở đây mình tạo resource là mysql và webdata
+
+Tạo file mysql.res và webdata.res tại /etc/drbd.d/với nội dung sau trên cả 2 node
+
+- mysql.res
+`
+resource mysql {
+        disk /dev/sdb1;
+        device /dev/drbd0;
+        meta-disk internal;
+        on ctl1 {
+                address 10.10.10.11:7789;
+        }
+        on ctl2 {
+                address 10.10.10.12:7789;
+        }
+}
+
+`
+- webdata.res
+`resource webdata{
+	disk /dev/sdb2;
+	device /dev/drbd1;
+	meta-disk internal;
+	on ctl1 {
+		address 10.10.10.11:7790;
+	}
+	on ctl2{
+		address 10.10.10.12:7790;
+	}
+}`
+
+Format định dạng cho 2 ổ thực hiện trên cả 2 node
+`mkfs.ext4 /dev/drbd0
+mkfs.ext4 /dev/drbd1`
+
+Chạy lệnh sau trên cả 2 node để start resource DRBD
+`drbdadm create-md mysql
+drbdadm up mysql
+drbdadm create-md webdata
+drbdadm up webdata`
+
+Lúc này dùng lệnh cat /proc/drbd thì cả 2 node sẽ là Secondary để 1 node là Primary thì trên node đó ta chạy lệnh sau
+`drbdadm primary --force mysql
+drbdadm primary --force webdata`
+
+Trên cả 2 node sửa file /etc/mysql/my.cnf thay đổi datadir thành /mnt/database
+
+Sửa tiếp file /etc/apparmor.d/usr.sbin.mysqld từ `/var/lib/mysql` thành `/mnt/database`
+
+Mount ổ mysql lên /mnt/database trên node primary node còn lại cũng tương tự nhưng phải đổi lại primary thành node đó rồi mount
+`mount /dev/drbd0 /mnt/databae`
+
+Copy dữ liệu mysql gốc sang mục này chỉ cần thực hiện trên 1 node
+`cp -r /var/lib/mysql /mnt/database`
+
+Set quyền cho mysql
+`chown mysql:mysql /mnt/database
+chown -R mysql:mysql /mnt/database/*`
+
+Restart lại appamor và mysql trên cả 2 node
+`service apparmor reload
+service mysql restart`
+
+Trên 1 node thực hiện tạo các resource Virtual IP, apache, mysql và File System
+- ignore quorum và tắt stonith do mô hình của mình chỉ có 2 node. từ 3 node trở lên mới cần quorum hoặc STONITH để giải quyết split brain
+`crm configure property no-quorum-policy="ignore" stonith-enabled="false"`
+
+- Tạo Virtual IP có địa chỉ 10.10.10.30/24 nằm trên card eth0
+`crm configure primitive p_IP ocf:heartbeat:IPaddr2 params ip="10.10.10.30" cidr_netmask="24" nic="eth0" op monitor interval="30s"`
+
+- Tạo resource mysql để pacemaker quản lý
+`crm configure primitive p_mysql ocf:heartbeat:mysql params additional_parameters="--bind-address=10.10.10.30" config="/etc/mysql/my.cnf" pid="/var/run/mysqld/mysqld.pid" socket="/var/run/mysqld/mysqld.sock" log="/var/log/mysql/mysqld.log" datadir="/mnt/database/" op monitor interval="20s" timeout="10s" op start timeout="120s" op stop timeout="120s"`
+
+- Tạo resource apache để pacemaker manage apache
+`crm configure primitive p_apache ocf💓apache params configfile="/etc/apache2/apache2.conf" port="80" op monitor interval="30s" op start interval="0s" timeout="40s" op stop interval="0s" timeout="40s"`
+
+####Cấu hình DRBD Resource
+
+#####MySQL
+- Tại shell gõ `crm`
+```
+cib new mysql
+configure primitive p_drbd_mysql ocf:linbit:drbd params drbd_resource="mysql" op monitor interval="3s"
+configure primitive p_fs_mysql ocf:heartbeat:Filesystem params device="/dev/drbd0" directory="/mnt/database" fstype="ext4" op start interval="0s" timeout="40s" op stop interval="0s" timeout="40s" op monitor interval="3s"
+configure ms ms_drbd_mysql p_drbd_mysql meta master-max="1"  master-node-max="1" clone-max="2" clone-node-max="1" notify="true"
+configure colocation mysql-with-IP inf: p_mysql p_IP
+configure order mysql-after-drbd inf: ms_drbd_mysql:promote p_fs_mysql:start
+configure colocation mysqldb-on-drbd inf: p_fs_mysql ms_drbd_mysql:Master
+cib commit mysql
+
+```
+
+#####Data Web
+- Tại shell gõ `crm`
+```
+cib new apache
+configure primitive p_drbd_data ocf:linbit:drbd params drbd_resource="webdata" op monitor interval="3s"
+configure primitive p_fs_data ocf:heartbeat:Filesystem params device="/dev/drbd1" directory="/mnt/web" fstype="ext4" op start interval="0s" timeout="40s" op stop interval="0s" timeout="40s" op monitor interval="3s
+configure ms ms_drbd_data p_drbd_data meta master-max="1"  master-node-max="1" clone-max="2" clone-node-max="1" notify="true"
+configure order fs-after-drbd inf: ms_drbd_data:promote p_fs_data:start
+configure colocation fs-on-drbd inf: p_fs_data ms_drbd_data:Master
+cib comit apache
+```
+- Group 2 FS để start trên cùng 1 node
+`crm configure group FS p_fs_data p_fs_mysql`
+
+- Đặt địa chỉ IP trên node start group FS
+`crm configure IP-with-FS inf: p_IP FS`
+
+- apache start trên node đặt địa chỉ IP crm configure colocation apache-with-IP inf: p_apache p_IP
+- Để dữ liệu được đồng bộ giữa 2 node đầy đủ thì ta cần cấu hình cho các resource không được di chuyển sang node khác khi node đó được phục hồi
+
+`crm configure rsc_defaults resource-stickiness=100`
+
+###Sau khi xong reboot lại máy kiểm tra crm_mon sẽ được kết quả như này
+<img src="http://i.imgur.com/Pfru63M.png">
+
+Test thử power off node 2 thì resource sẽ start trên node 1
+<img src="http://i.imgur.com/y3jWcuS.png">
+
+---------------
+#Tổng Kết
+
+Bài viết trên mình đã giới thiệu tổng quan về Pacemaker và cách cấu hình nó. Để cấu hình 1 cluster không phải là dễ, nó rất khó bởi vì chỉ cần cấu hình 1 resource không đúng hoặc thứ tự start không đúng thì cluster sẽ không thể chạy theo đúng yêu cầu đặt ra được. Do vậy bài viết có gì sai xót mong các bạn góp ý
 
