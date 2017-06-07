@@ -1,35 +1,59 @@
 ﻿Pacemaker
 =========
 
-# Table of Contents
-[1. Cluster là gì](#1Cluster là gì)
+#Mục lục
+- [1. Cluster là gì](#Clusterlagi)
+- [2. Mô hình triển khai](#Mohinhtrienkhai)
+<ul>
+<li>		[2.1. High Performance Cluster](#HPC)</li>
+<li>		[2.2. Load Balancing Cluster](#LBC)</li>
+<li>		[2.3. High Availabality Cluster](#HAC)</li>
+</ul>
+- [3. Lịch sử HAC trong linux](#LSHAC)
+- [4. Các thành phần trong HAC](#CTPHAC)
+- [5. Kiến trúc Pacemaker](#KTP)
+<ul>
+<li>		[5.1. Cluster Infomation Base](#CIB)</li>
+<li>		[5.2. CRMD](#CRMD)</li>
+<li>		[5.3. PEngine](#PEngine)</li>
+<li>		[5.4. LRMD](#LRMD)</li>
+<li>		[5.5. Stonith/fenced](#Stonith)</li>
+</ul>
+- [6. Vấn dề xảy ra trong Cluster](#VDC)
+- [7. Cài đặt](#Caidat)
+- [8. Cấu hình](#Cauhinh)
 
-
+<a name="Clusterlagi"></a>
 ##1. Cluster là gì
 - Cluster là một kiến trúc nhằm đảm bảo nâng cao khả năng sẵn sàng cho các hệ thống mạng máy tính
 - Clustering cho phép sử dụng nhiều máy chủ kết hợp với nhau tạo thành một cụm có khả năng chịu đựng hay chấp nhận sai sót (fault-tolerant) nhằm nâng cao độ sẵn sàng của hệ thống mạng.
 
+<a name="Mohinhtrienkhai"></a>
 ##2. Mô hình triển khai
 - High Performance Cluster
 - Load Balancing Cluster
 - High Availability Cluster
 
+<a name="HPC"></a>
 ###2.1 High Performance Cluster (HPC)
 - Nhiều máy tính khác nhau làm việc cùng nhau để xử lý một hoặc nhiều tác vụ yêu cầu nhiều tài nguyên tính toán
 - Mô hình tổng quan HPC
 <img src="http://i.imgur.com/yX8ueM8.png">
 
+<a name="LBC"></a>
 ###2.2 Load Balancing Cluster (LBC)
 - Mỗi máy tính trong cluster sẽ xử lý 1 công việc riêng biệt
 - Cần có Load Balancer (Frontend) và Server Farm (Backend)
 - Mô hình tổng quan LBC
 <img src="http://i.imgur.com/6uVfBLU.png">
 
+<a name="HAC"></a>
 ###2.3 High Availabality Cluster (HAC)
 - Mục đích của kiểu cluster này là đảm bảo các tài nguyên quan trọng sẵn sàng tối đa có thể đạt được
 - Mô hình tổng quan HAC
 <img src="http://i.imgur.com/IPyBc8z.png">
 
+<a name="LSHAC"></a>
 ##3. Lịch sử HAC trong linux
 - HA có một lịch sử dài nó bắt đầu vào thập niên 90 của thế kỉ trước và nó là một giải pháp đơn giản với tên Hearbeat.
 - Một Hearbeat cluster đơn giản chỉ làm 2 việc:
@@ -37,6 +61,7 @@
 <li>Nó được cấu   hình để start 1 hoặc nhiều dịch vụ trên 2 node</li> </ul>
 - Nếu resoure trên node này bị down nó sẽ start resouce trên node còn lại
 
+<a name="CTPHAC"></a>
 ##4. Các thành phần trong HAC
 - các thành phần sau đây đươc sử dụng trong hầu hết clusters.
 <ul><li>Shared Storage</li>
@@ -63,10 +88,12 @@
 	<li>Nó đặc biệt quan tronjng nếu là share storage như là cLVM2 cluster logical volumn hoặc GFS2 và OCFS2 cluster file system.</li>
 	</ul>
 
+<a name="KTP"></a>	
 ##5. Kiến trúc Pacemaker
 
 <img src="http://i.imgur.com/GTTGMpk.png">
 
+<a name="CIB"></a>	
 ###5.1 Cluster Infomation Base (CIB)
 
 - Trái tim của cluster là Cluster Infomation Base (CIB). Đây là trạng thái thực tế trong bộ nhớ của cluster đó là liên tục đồng bộ giữa các node trong cluster. Bạn sẽ không bao giờ chỉnh sửa trực tiếp được CIB.
@@ -247,25 +274,30 @@ root@ctl1# cibadmin -Q
 	- Clones: Một clone là một primitive mà cần thiết để bắt đầu cluster hơn 1 lần. Clones hữu dụng cho các services mà phải ở chế độ active/active như file system cluster.
 	- Master slaves: Một master slave là một kiểu đặc biệt của clone. Trong đó 1 vài thể hiện (ít nhất là 1) active và những thể hiện khác slave.
 
+<a name="CRMD"></a>	
 ###5.2 CRMD
 - Cluster resource management daemon là một tiến trình quản lý trạng thái hoạt động của cluster.
 - Nhiệm vụ chính của của crmd là chuyển tiếp trực tiếp các thông tin giữa nhiều components của cluster. Như việc đặt resource trên các node đặc biệt. Nó cũng có trách nhiệm quản lý các node transition. Node mà master crmd thực sự action được công nhận là desginated coordinator (DC). Nếu DC fail, cluster sẽ tự động chọn một DC mới nhất nhanh chóng.
 
+<a name="PEngine"></a>	
 ###5.3 PEngine
 - Là một phần của cluster nó tính toán để đạt được.
 - Nó tạo ra một danh sách các hướng dẫn được gửi tới crmd. Cách tốt nhất để 1 admin tác động tới hành vi của pengine là định nghĩa những hạn chế trong cluster.
 
+<a name="LRMD"></a>	
 ###5.4 LRMD
 - Local resource management daemon là một phần của cluster được chạy trên mỗi node của cluster.
 - Nếu crmd quyết định chạy resource trên node đặc biệt nào, nó sẽ hướng lrmd vào node đó để bắt đầu resource.
 - Trong trường hợp nó không hoạt động, lrmd sẽ thông báo về crmd rằng start resource fail. Sau đó Cluster có thể cố gắng thử lại resource trên nút khác trong cluster.
 - LRM cũng có trách nhiệm monitor operation và stop operation mà đang chạy trên node.
 
+<a name="Stonith"></a>	
 ###5.5 Stonith/fenced
 - Viết tắt của Shoot the other node in the head
 - Tiến trình stonith nhận hướng dẫn từ crmd về các thay đổi trạng thái của các node.
 - Nếu 1 node không trả lời, membership layer (corosync) sẽ nói cho crmd biết và crmd hướng dẫn stonith chấm dứt node đó.
 
+<a name="VDC"></a>	
 ##6. Vấn dề xảy ra trong Cluster
 ###Split Brain
 
@@ -280,7 +312,8 @@ root@ctl1# cibadmin -Q
 - Quá trình đàm phán Quorum Quá trình đàm phán quorum xảy ra khi một node đang sở hữu một quorum resource bị lỗi hay không hoạt động, và các node còn lại sẽ xác định node nào sẽ giữ quyền sở hữu quorum resource. Mục đích của quá trình đàm phán quorum là tại một thời điểm đảm bảo rằng chỉ một node duy nhất được sở hữu quorum resource. Việc chỉ cho một node sở hữu quorum resource là rất quan trọng bởi vì nếu tất cả các giao tiếp giữa 2 hay nhiều node bị lỗi, nó có khả năng chia Cluster thành 2 hay nhiều phần riêng biệt để giữ cho nó vần tiếp tục hoạt động (split brain). Server Cluster ngăn ngừa nó bằng cách chỉ cho phép duy nhất một Cluster tách ra này có chứa node đang sở hữu quorum resource tiếp tục hoạt động như một Cluster. Bất kỳ node nào không thể giao tiếp với node đang sở hữu quorum resource, thì node đó sẽ không còn là node thành viên trong Cluster.
 - Stonith Đã nói bên trên
 
-##7.Cài đặt
+<a name="Caidat"></a>	
+##7. Cài đặt
 
 - Có thể thấy pacemaker chỉ là 1 thành phần để quản lý các resource nên khi cài đặt chúng ta phải cài đặt cùng với các thành phần khác để nó có thể hoạt động được
 
@@ -291,6 +324,7 @@ root@ctl1# cibadmin -Q
 Trên centos chạy lệnh sau
 `sudo yum install pacemaker cman pcs ccs resource-agents -y`
 
+<a name="Cauhinh"></a>	
 ##8. Cấu hình
 
 Chuẩn bị 2 Server có cấu hình tương đương:
@@ -439,7 +473,7 @@ Trên 1 node thực hiện tạo các resource Virtual IP, apache, mysql và Fil
 `crm configure primitive p_mysql ocf:heartbeat:mysql params additional_parameters="--bind-address=10.10.10.30" config="/etc/mysql/my.cnf" pid="/var/run/mysqld/mysqld.pid" socket="/var/run/mysqld/mysqld.sock" log="/var/log/mysql/mysqld.log" datadir="/mnt/database/" op monitor interval="20s" timeout="10s" op start timeout="120s" op stop timeout="120s"`
 
 - Tạo resource apache để pacemaker manage apache
-`crm configure primitive p_apache ocf💓apache params configfile="/etc/apache2/apache2.conf" port="80" op monitor interval="30s" op start interval="0s" timeout="40s" op stop interval="0s" timeout="40s"`
+`crm configure primitive p_apache ocfapache params configfile="/etc/apache2/apache2.conf" port="80" op monitor interval="30s" op start interval="0s" timeout="40s" op stop interval="0s" timeout="40s"`
 
 ####Cấu hình DRBD Resource
 
